@@ -1,0 +1,20 @@
+{
+   "Records":[
+      {
+         "kinesis":{
+            "kinesisSchemaVersion":"1.0",
+            "partitionKey":"wis2/deu/dwd/data/core/weather/surface-based-observations/synop/Z__C_EDZW_20231104210200_bda01,synop_bufr_GER_999999_999999__MW_078.bin",
+            "sequenceNumber":"49646125847078350054939578663040123361089269445647401058",
+            "data":"eyJpZCI6ICIzZmI0ZmViZS03YjU2LTExZWUtYTk2Yy1lNDNkMWEyMTQ4MjQiLCAidmVyc2lvbiI6ICJ2MDQiLCAidHlwZSI6ICJGZWF0dXJlIiwgImdlb21ldHJ5IjogeyJ0eXBlIjogIlBvbHlnb24iLCAiY29vcmRpbmF0ZXMiOiBbW1s1Ljg3LCA0Ny4yN10sIFs1Ljg3LCA1NS4wNl0sIFsxNS4wNCwgNTUuMDZdLCBbMTUuMDQsIDQ3LjI3XSwgWzUuODcsIDQ3LjI3XV1dfSwgInByb3BlcnRpZXMiOiB7ImRhdGFfaWQiOiAid2lzMi9kZXUvZHdkL2RhdGEvY29yZS93ZWF0aGVyL3N1cmZhY2UtYmFzZWQtb2JzZXJ2YXRpb25zL3N5bm9wL1pfX0NfRURaV18yMDIzMTEwNDIxMDIwMF9iZGEwMSxzeW5vcF9idWZyX0dFUl85OTk5OTlfOTk5OTk5X19NV18wNzguYmluIiwgIm1ldGFkYXRhX2lkIjogInVybjp4LXdtbzptZDpkZXU6ZHdkOnN5bm9wIiwgInB1YnRpbWUiOiAiMjAyMy0xMS0wNFQyMTowODowNloiLCAiZGF0ZXRpbWUiOiAiMjAyMy0xMS0wNFQyMDo0MDowMFoiLCAiaW50ZWdyaXR5IjogeyJtZXRob2QiOiAic2hhNTEyIiwgInZhbHVlIjogInRLSVFqNnNSYittVVUySU0xQkhQT3AybUVTMDhmd1JIa2hMbnFKV3craDJrQWZzb2VaT2h1M01xMmV1UFV4ek00TzFwRVptcHkwczVKV2NzQ1Zzc1N3PT0ifX0sICJsaW5rcyI6IFt7ImhyZWYiOiAiaHR0cHM6Ly9vcGVuZGF0YS5kd2QuZGUvd2VhdGhlci93ZWF0aGVyX3JlcG9ydHMvc3lub3B0aWMvZ2VybWFueS9aX19DX0VEWldfMjAyMzExMDQyMTAyMDBfYmRhMDEsc3lub3BfYnVmcl9HRVJfOTk5OTk5Xzk5OTk5OV9fTVdfMDc4LmJpbiIsICJyZWwiOiAiY2Fub25pY2FsIiwgInR5cGUiOiAiYXBwbGljYXRpb24vb2N0ZXQtc3RyZWFtIiwgImxlbmd0aCI6IDI0ODQ1Mn1dLCAiX21ldGEiOiB7InRpbWVfcmVjZWl2ZWQiOiAiMjAyMy0xMS0wNFQyMTowODowNi4yNTA2OTgiLCAiYnJva2VyIjogImdsb2JhbGJyb2tlci5tZXRlby5mciIsICJ0b3BpYyI6ICJjYWNoZS9hL3dpczIvZGV1L2R3ZC9kYXRhL2NvcmUvd2VhdGhlci9zdXJmYWNlLWJhc2VkLW9ic2VydmF0aW9ucy9zeW5vcCJ9fQ==",
+            "approximateArrivalTimestamp":1699132086.265
+         },
+         "eventSource":"aws:kinesis",
+         "eventVersion":"1.0",
+         "eventID":"shardId-000000000006:49646125847078350054939578663040123361089269445647401058",
+         "eventName":"aws:kinesis:record",
+         "invokeIdentityArn":"arn:aws:iam::735286310638:role/ObsdecoderStack-SurfaceObsLambdaServiceRoleA6393DB9-FC349hoHsRjn",
+         "awsRegion":"eu-central-1",
+         "eventSourceARN":"arn:aws:kinesis:eu-central-1:735286310638:stream/ObsdecoderStack-SurfaceObsInputStreamFBD2F1AB-vO3t5HRzbTqs"
+      }
+   ]
+}

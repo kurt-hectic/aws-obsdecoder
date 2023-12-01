@@ -1,0 +1,56 @@
+# Define function directory
+ARG FUNCTION_DIR="/function"
+
+FROM bufr2geojson as build-image
+
+# Install aws-lambda-cpp build dependencies
+RUN apt-get update && \
+  apt-get install -y \
+  g++ \
+  make \
+  cmake \
+  unzip \
+  libcurl4-openssl-dev
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+# Create function directory
+RUN mkdir -p ${FUNCTION_DIR}
+
+# Install the runtime interface client
+RUN pip install \
+        --target ${FUNCTION_DIR} \
+        awslambdaric
+
+# Multi-stage build: grab a fresh copy of the base image
+FROM bufr2geojson
+
+RUN apt-get install -y ca-certificates
+COPY lambda_surface-obs/kishou-go-jp.pem /usr/local/share/ca-certificates
+RUN update-ca-certificates
+
+RUN pip3 install "requests<2.29.0" jsonpath-ng pandas boto3 --target "${FUNCTION_DIR}"
+
+# Copy library
+COPY wis2mon-lib /tmp/wis2mon-lib
+RUN pip3 install /tmp/wis2mon-lib --target "${FUNCTION_DIR}"
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+# Set working directory to function root directory
+WORKDIR ${FUNCTION_DIR}
+
+# Copy in the build image dependencies
+COPY --from=build-image ${FUNCTION_DIR} ${FUNCTION_DIR}
+
+#ENTRYPOINT [ "/usr/bin/python3", "-m", "awslambdaric" ]
+
+COPY lambda_surface-obs/entry_script.sh /entry_script.sh
+RUN chmod +x /entry_script.sh
+ADD lambda_surface-obs/aws-lambda-rie /usr/local/bin/aws-lambda-rie
+
+# Copy function code
+COPY lambda_surface-obs/app/ ${FUNCTION_DIR}/app
+
+ENTRYPOINT [ "/bin/bash" , "/entry_script.sh" ]
+CMD [ "app.app.lambda_handler" ]

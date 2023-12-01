@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  bridge:
+    build: .
+    #volumes:
+    #  - ./wis2toaws.py:/app/wis2toaws.py
+      
+    environment:
+      - WIS_USERNAME=everyone
+      - WIS_PASSWORD=everyone
+      - TOPIC=cache/a/wis2/#
+      - CLIENT_ID=wis2bridge
+      - AWS_BROKER=awyxyfhut1ugd-ats.iot.eu-central-1.amazonaws.com
+      - WIS_BROKER_HOST=globalbroker.meteo.fr
+      - WIS_BROKER_PORT=443
+      - CERT_FILE=./certs/cert.pem.crt
+      - KEY_FILE=./certs/privatekey.pem
+      - CERT_ID=b91b5e4b05b5e3a6f324b9fad8dc2bc573de61ec85896f3044bca0e77bebda46
+
+      
+    restart: on-failure
