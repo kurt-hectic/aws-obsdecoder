@@ -108,7 +108,7 @@ export class ObsdecoderStack extends cdk.Stack {
 
     const my_environment = {
       "WIS_USERNAME": this.secrets["WIS_MF_USERNAME"], "WIS_PASSWORD": this.secrets["WIS_MF_PASSWORD"], 
-      "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop",
+      "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop,cache/a/wis2/+/data/core/weather/surface-based-observations/synop",
       "CLIENT_ID": "wis2bridge_", 
       "WIS_BROKER_HOST": "globalbroker.meteo.fr", "WIS_BROKER_PORT": "8883",
        "LOG_LEVEL": "INFO",
@@ -118,7 +118,7 @@ export class ObsdecoderStack extends cdk.Stack {
 
     const my_environment_cma = {
       "WIS_USERNAME": this.secrets["WIS_USERNAME"], "WIS_PASSWORD": this.secrets["WIS_PASSWORD"], 
-      "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop",
+      "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop,cache/a/wis2/+/data/core/weather/surface-based-observations/synop",
       "CLIENT_ID": "wis2bridge_cma_", 
       "WIS_BROKER_HOST": "gb.wis.cma.cn", "WIS_BROKER_PORT": "1883",
        "LOG_LEVEL": "INFO",
@@ -129,9 +129,19 @@ export class ObsdecoderStack extends cdk.Stack {
     
     const my_environment_noaa = {
       "WIS_USERNAME": this.secrets["WIS_USERNAME"], "WIS_PASSWORD": this.secrets["WIS_PASSWORD"], 
-      "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop",
+      "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop,cache/a/wis2/+/data/core/weather/surface-based-observations/synop",
       "CLIENT_ID": "wis2bridge_noaa_", 
       "WIS_BROKER_HOST": "wis2globalbroker.nws.noaa.gov", "WIS_BROKER_PORT": "1883",
+       "LOG_LEVEL": "INFO",
+       "STREAM_NAME" : this.obsStream.streamName,
+       "REPORTING_THRESHOLD" : reporting_threshold, "BATCH_SIZE" : batch_size
+    };
+
+    const my_environment_inmet = {
+      "WIS_USERNAME": this.secrets["WIS_USERNAME"], "WIS_PASSWORD": this.secrets["WIS_PASSWORD"], 
+      "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop,cache/a/wis2/+/data/core/weather/surface-based-observations/synop",
+      "CLIENT_ID": "wis2bridge_inmet_", 
+      "WIS_BROKER_HOST": "globalbroker.inmet.gov.br", "WIS_BROKER_PORT": "1883",
        "LOG_LEVEL": "INFO",
        "STREAM_NAME" : this.obsStream.streamName,
        "REPORTING_THRESHOLD" : reporting_threshold, "BATCH_SIZE" : batch_size
@@ -155,6 +165,12 @@ export class ObsdecoderStack extends cdk.Stack {
       logging: new ecs.AwsLogDriver({ streamPrefix: "BrideLog_NOAA", mode: ecs.AwsLogDriverMode.NON_BLOCKING })
     });
 
+   
+    const containerNCEP = taskDefinition.addContainer("BridgeApp_INMET", {
+      image: image,
+      environment: my_environment_inmet,
+      logging: new ecs.AwsLogDriver({ streamPrefix: "BrideLog_INMET", mode: ecs.AwsLogDriverMode.NON_BLOCKING })
+    });
     
     const service = new ecs.FargateService(this, "BridgeService", {
       cluster: cluster,
