@@ -40,11 +40,13 @@ wis_user = os.getenv("WIS_USERNAME")
 wis_pw = os.getenv("WIS_PASSWORD")
 client_id = os.getenv("CLIENT_ID") + get_random_string(6)
 aws_broker = os.getenv("AWS_BROKER")
+validate_ssl_cert = os.getenv("VALIDATE_SSL", "False").lower() in ["true","1","yes"]
 
 # update stats every x notifications
 threshold = int(os.getenv("REPORTING_THRESHOLD","100"))
 # group batch_size records together before sending to Kinesis stream
 batch_size = int(os.getenv("BATCH_SIZE","10"))
+heartbeat_threshold = int(os.getenv("HEARTBEAT_THRESHOLD","300")) # send an update every 5 minutes
 
 session = boto3.Session()
 cloud_watch = session.client('cloudwatch')
@@ -56,17 +58,17 @@ stream_name = os.getenv("STREAM_NAME")
 q = queue.Queue()
 
 
-def on_connect_wis(client, userdata, flags, rc):
+def on_connect_wis(client, userdata, flags, reason_code, properties):
     """
     set the bad connection flag for rc >0, Sets onnected_flag if connected ok
     also subscribes to topics
     """
-    logging.info("Connected flags: %s result code: %s ",flags,rc) 
+    logging.info("Connected flags: %s result code: %s ",flags,reason_code) 
     for topic in topics:   
         logging.info("subscribing to:"+str(topic))
         client_wis2.subscribe(topic,qos=1)
 
-def on_subscribe(client,userdata,mid,granted_qos):
+def on_subscribe(client,userdata,mid, reason_codes, properties):
     """removes mid values from subscribe list"""
     logging.info("in on subscribe callback result %s",mid)
     client.subscribe_flag=True
@@ -78,7 +80,7 @@ def on_message(client, userdata, msg):
     #logging.debug("message received")
     message_routing(client,topic,m_decode)
     
-def on_disconnect(client, userdata, rc):
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
     logging.info("connection to broker has been lost")
     client.connected_flag=False
     client.disconnect_flag=True
@@ -106,15 +108,16 @@ def message_routing(client,topic,msg):
         
 def create_wis2_connection():
     transport = "websockets" if wis_broker_port==443 else "tcp"
-    logging.info(f"creating wis2 connection to {wis_broker_host}:{wis_broker_port} using {wis_user}/{wis_pw} over {transport} with client id {client_id}")
+    logging.info(f"creating wis2 connection to {wis_broker_host}:{wis_broker_port} using {wis_user}/{wis_pw} over {transport} with client id {client_id}, validate_ssl={validate_ssl_cert}")
     
-    client = mqtt_paho.Client(client_id=client_id, transport=transport,
+    client = mqtt_paho.Client(mqtt_paho.CallbackAPIVersion.VERSION2, client_id=client_id, transport=transport,
          protocol=mqtt_paho.MQTTv311, clean_session=False)
                          
     client.username_pw_set(wis_user, wis_pw)
     if wis_broker_port != 1883:
         logging.info("setting up TLS connection")
-        client.tls_set(certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED)
+        client.tls_set(certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED if validate_ssl_cert else ssl.CERT_NONE)
+        client.tls_insecure_set(not validate_ssl_cert)
     
     client.on_message = on_message
     client.on_connect = on_connect_wis
@@ -220,18 +223,21 @@ class ConsumerThread(threading.Thread):
         return
 
 
-
 def service_shutdown(signum, frame):
     signame = signal.Signals(signum).name
     logging.info(f"received signal {signame}")
+
+    try:
     
-    client_wis2.loop_stop()
-    client_wis2.disconnect()
-    
-    c.shutdown_flag.set()
-    c.join()
+        client_wis2.loop_stop()
+        client_wis2.disconnect()
         
-   
+        c.shutdown_flag.set()
+        c.join()
+    except Exception as e:
+        logging.error("error shutting down, mqtt client likely not correctly initalized",exc_info=True)
+        sys.exit(1)
+            
 if __name__ == '__main__':
 
     logging.info("starting up bridge service")
@@ -253,4 +259,5 @@ if __name__ == '__main__':
         logging.info("exiting main thread")
         
     except Exception as e:
-        print("error",e)
+        logging.error("error, exiting",exc_info=True)
+        sys.exit(1)

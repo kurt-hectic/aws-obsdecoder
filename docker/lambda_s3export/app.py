@@ -32,12 +32,14 @@ logger.debug(f"overriding DB for local testing {db_override}")
 
 def get_period(dt):
     
-    upper =  datetime( dt.year, dt.month, dt.day ,  int( ((dt.hour+3)%24) / 6) * 6 , 0 )  
-    lower = upper - timedelta(hours=6)
+    interval = (dt.hour // 6) 
     
-    upper = upper - timedelta(hours=3)
-    lower = lower - timedelta(hours=3)
+    median = datetime(dt.year,dt.month,dt.day, interval * 6  ,0 )
     
+    
+    upper = median + timedelta(hours=3)
+    lower = median - timedelta(hours=3)
+
     return (lower,upper)
 
 def get_engine():

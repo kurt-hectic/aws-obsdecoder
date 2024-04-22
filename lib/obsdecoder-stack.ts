@@ -70,9 +70,8 @@ export class ObsdecoderStack extends cdk.Stack {
     })  
 
     this.obsStream = this.setupSurfaceObsPipeline();
-    const task =  this.setupBridge();
+    this.setupBridge(this.obsStream);
     
-    this.obsStream.grantWrite(task.taskRole);
 
     this.setupDBInfrastructure(id);
     this.setupDBImport(id);
@@ -80,26 +79,42 @@ export class ObsdecoderStack extends cdk.Stack {
 
   }
 
-  setupBridge(): ecs.FargateTaskDefinition {
+
+  setupBridgeTask( cluster: ecs.Cluster, image: ecs.ContainerImage, policyStatement: iam.PolicyStatement, stream: kinesis.Stream, environment: { [key: string]: string } , prefix : string ): void {
+
+
+    const taskDefinition = new ecs.FargateTaskDefinition(this, "BridgeTask_"+prefix, { family: "BridgeTask_"+prefix, memoryLimitMiB: 512, cpu: 256  });
+
+  
+    const container = taskDefinition.addContainer("BridgeApp_"+prefix, {
+      image: image,
+      environment: environment,
+      logging: new ecs.AwsLogDriver({ streamPrefix: "BrideLog_"+prefix, mode: ecs.AwsLogDriverMode.NON_BLOCKING })
+    });
+
+    const service = new ecs.FargateService(this, "BridgeService_"+prefix, {
+      cluster: cluster,
+      taskDefinition: taskDefinition, desiredCount: 1 
+    });
+
+    taskDefinition.addToTaskRolePolicy(policyStatement);
+    taskDefinition.addToExecutionRolePolicy(policyStatement);
+
+    stream.grantWrite(taskDefinition.taskRole);
+
+  }
+
+
+  setupBridge(stream : kinesis.Stream): void {
 
 
     const cluster = new ecs.Cluster(this, "BridgeEcsCluster", { vpc: this.vpc });
-
-    const taskDefinition = new ecs.FargateTaskDefinition(this, "BridgeTask", { family: "BridgeTask", memoryLimitMiB: 1024, cpu: 512  });
-    
-    
-   //taskDefinition.taskRole.attachInlinePolicy(this.metricPolicy);
-
 
     const policyStatement = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ["cloudwatch:PutMetricData"],
       resources: ['*'],
     });
-
-    taskDefinition.addToTaskRolePolicy(policyStatement);
-    taskDefinition.addToExecutionRolePolicy(policyStatement);
-
     
     const image = ecs.ContainerImage.fromAsset("./docker/wis2bridge");
 
@@ -110,22 +125,26 @@ export class ObsdecoderStack extends cdk.Stack {
       "WIS_USERNAME": this.secrets["WIS_MF_USERNAME"], "WIS_PASSWORD": this.secrets["WIS_MF_PASSWORD"], 
       "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop,cache/a/wis2/+/data/core/weather/surface-based-observations/synop",
       "CLIENT_ID": "wis2bridge_", 
-      "WIS_BROKER_HOST": "globalbroker.meteo.fr", "WIS_BROKER_PORT": "8883",
+      "WIS_BROKER_HOST": "globalbroker.meteo.fr", "WIS_BROKER_PORT": "8883","VALIDATE_SSL" : "True",
        "LOG_LEVEL": "INFO",
        "STREAM_NAME" : this.obsStream.streamName,
        "REPORTING_THRESHOLD" : reporting_threshold, "BATCH_SIZE" : batch_size
     };
+
+    this.setupBridgeTask(cluster, image, policyStatement, stream, my_environment, "MF");
+
 
     const my_environment_cma = {
       "WIS_USERNAME": this.secrets["WIS_USERNAME"], "WIS_PASSWORD": this.secrets["WIS_PASSWORD"], 
       "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop,cache/a/wis2/+/data/core/weather/surface-based-observations/synop",
       "CLIENT_ID": "wis2bridge_cma_", 
-      "WIS_BROKER_HOST": "gb.wis.cma.cn", "WIS_BROKER_PORT": "1883",
+      "WIS_BROKER_HOST": "gb.wis.cma.cn", "WIS_BROKER_PORT": "1883", 
        "LOG_LEVEL": "INFO",
        "STREAM_NAME" : this.obsStream.streamName,
        "REPORTING_THRESHOLD" : reporting_threshold, "BATCH_SIZE" : batch_size
     };
 
+    this.setupBridgeTask(cluster, image, policyStatement, stream, my_environment_cma, "CMA");
     
     const my_environment_noaa = {
       "WIS_USERNAME": this.secrets["WIS_USERNAME"], "WIS_PASSWORD": this.secrets["WIS_PASSWORD"], 
@@ -137,47 +156,19 @@ export class ObsdecoderStack extends cdk.Stack {
        "REPORTING_THRESHOLD" : reporting_threshold, "BATCH_SIZE" : batch_size
     };
 
+    this.setupBridgeTask(cluster, image, policyStatement, stream, my_environment_noaa, "NOAA");
+
     const my_environment_inmet = {
       "WIS_USERNAME": this.secrets["WIS_USERNAME"], "WIS_PASSWORD": this.secrets["WIS_PASSWORD"], 
       "TOPICS": "cache/a/wis2/+/+/data/core/weather/surface-based-observations/synop,cache/a/wis2/+/data/core/weather/surface-based-observations/synop",
       "CLIENT_ID": "wis2bridge_inmet_", 
-      "WIS_BROKER_HOST": "globalbroker.inmet.gov.br", "WIS_BROKER_PORT": "1883",
+      "WIS_BROKER_HOST": "globalbroker.inmet.gov.br", "WIS_BROKER_PORT": "8883", "VALIDATE_SSL" : "False",
        "LOG_LEVEL": "INFO",
        "STREAM_NAME" : this.obsStream.streamName,
        "REPORTING_THRESHOLD" : reporting_threshold, "BATCH_SIZE" : batch_size
     };
 
-    const container = taskDefinition.addContainer("BridgeApp_MF", {
-      image: image,
-      environment: my_environment,
-      logging: new ecs.AwsLogDriver({ streamPrefix: "BrideLog_MF", mode: ecs.AwsLogDriverMode.NON_BLOCKING })
-    });
-
-    const containerCMA = taskDefinition.addContainer("BridgeApp_CMA", {
-      image: image,
-      environment: my_environment_cma,
-      logging: new ecs.AwsLogDriver({ streamPrefix: "BrideLog_CMA", mode: ecs.AwsLogDriverMode.NON_BLOCKING })
-    });
-
-    const containerNOAA = taskDefinition.addContainer("BridgeApp_NOAA", {
-      image: image,
-      environment: my_environment_noaa,
-      logging: new ecs.AwsLogDriver({ streamPrefix: "BrideLog_NOAA", mode: ecs.AwsLogDriverMode.NON_BLOCKING })
-    });
-
-   
-    const containerNCEP = taskDefinition.addContainer("BridgeApp_INMET", {
-      image: image,
-      environment: my_environment_inmet,
-      logging: new ecs.AwsLogDriver({ streamPrefix: "BrideLog_INMET", mode: ecs.AwsLogDriverMode.NON_BLOCKING })
-    });
-    
-    const service = new ecs.FargateService(this, "BridgeService", {
-      cluster: cluster,
-      taskDefinition: taskDefinition, desiredCount: 1
-    });
-
-    return taskDefinition;
+    this.setupBridgeTask(cluster, image, policyStatement, stream, my_environment_inmet, "INMET");
 
   }
 
