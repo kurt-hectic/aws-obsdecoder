@@ -425,7 +425,7 @@ export class ObsdecoderStack extends cdk.Stack {
           restrictPublicBuckets: false,
       },
       lifecycleRules: [
-        { expiration: cdk.Duration.days(90) }
+        { expiration: cdk.Duration.days(180) }
       ]
     });
     
